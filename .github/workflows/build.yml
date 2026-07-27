@@ -46,7 +46,6 @@ jobs:
           uv sync --extra dev --extra rag --python 3.13 --frozen --no-build --no-install-project
           uv build --out-dir dist
           uv pip install --no-build dist/*.whl --no-deps
-          .venv/bin/python -m spacy download en_core_web_sm
 
       - name: Wait for Qdrant
         # Polled from the runner host, not via a container health-check —
