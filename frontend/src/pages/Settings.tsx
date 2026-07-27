@@ -28,6 +28,7 @@ export function Settings() {
             <label
               key={option.value}
               htmlFor={`sensitivity-${option.value}`}
+              aria-label={`${option.label}: ${option.description}`}
               className="flex cursor-pointer items-start gap-3 rounded-md border border-surface-border p-3 has-[:checked]:border-accent"
             >
               <input
