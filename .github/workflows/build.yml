@@ -33,19 +33,15 @@ jobs:
         working-directory: backend
         # --frozen: install exactly what's pinned in uv.lock, never silently
         # re-resolve/drift (predictable, reproducible builds).
-        # --no-build + --no-install-project: forbid building THIRD-PARTY deps
-        # from a source distribution — wheels only, so a compromised package
-        # can't run arbitrary setup.py/build-backend code during install.
-        # Verified locally that every third-party dependency here resolves to
-        # a wheel under this constraint. Our own first-party code is excluded
-        # from this step (an editable install of local code isn't a
-        # supply-chain risk) and instead built into a real wheel below, then
-        # installed with the same --only-binary flag applied trivially (it's
-        # already a wheel, no build needed at install time).
-        run: |
-          uv sync --extra dev --extra rag --python 3.13 --frozen --no-build --no-install-project
-          uv build --out-dir dist
-          uv pip install --no-build dist/*.whl --no-deps
+        # --no-build: forbid building any dependency from a source
+        # distribution — wheels only, so a compromised package can't run
+        # arbitrary setup.py/build-backend code during install. Verified
+        # locally that every dependency here resolves to a wheel under this
+        # constraint. --no-install-project skips installing our own app as a
+        # package entirely — it doesn't need to be: pytest/uvicorn both run
+        # with backend/ as the working directory, so `app` is already
+        # importable with nothing installed (verified locally).
+        run: uv sync --extra dev --extra rag --python 3.13 --frozen --no-build --no-install-project
 
       - name: Wait for Qdrant
         # Polled from the runner host, not via a container health-check —
