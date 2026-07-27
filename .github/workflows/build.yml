@@ -33,19 +33,19 @@ jobs:
         working-directory: backend
         # --frozen: install exactly what's pinned in uv.lock, never silently
         # re-resolve/drift (predictable, reproducible builds).
-        # --no-build: forbid building third-party deps from a source
-        # distribution — wheels only, so a compromised package can't run
-        # arbitrary setup.py/build-backend code during install. Verified
-        # locally that every third-party dependency here resolves to a wheel
-        # under this constraint. --no-install-project excludes our own
-        # first-party code from that restriction (it's trusted, and an
-        # editable install of a local package is a normal "build" step, not a
-        # supply-chain risk) — it's installed separately, right below.
-        # `uv run` would re-sync (and re-hit --no-build) before every
-        # invocation, so later steps call the venv's binaries directly.
+        # --no-build + --no-install-project: forbid building THIRD-PARTY deps
+        # from a source distribution — wheels only, so a compromised package
+        # can't run arbitrary setup.py/build-backend code during install.
+        # Verified locally that every third-party dependency here resolves to
+        # a wheel under this constraint. Our own first-party code is excluded
+        # from this step (an editable install of local code isn't a
+        # supply-chain risk) and instead built into a real wheel below, then
+        # installed with the same --only-binary flag applied trivially (it's
+        # already a wheel, no build needed at install time).
         run: |
           uv sync --extra dev --extra rag --python 3.13 --frozen --no-build --no-install-project
-          uv pip install -e . --no-deps
+          uv build --out-dir dist
+          uv pip install --only-binary=:all: dist/*.whl --no-deps
           .venv/bin/python -m spacy download en_core_web_sm
 
       - name: Wait for Qdrant
@@ -66,6 +66,17 @@ jobs:
           JWT_SECRET: ci-only-placeholder-secret-32-bytes-minimum
         run: .venv/bin/pytest --cov=app --cov-report=xml:coverage.xml
 
+      - name: Fix coverage.xml paths for monorepo layout
+        working-directory: backend
+        # coverage.xml's <source> is written relative to this step's cwd
+        # (backend/), e.g. <source>app</source> — but SonarQube resolves
+        # report paths relative to the repo root (sonar.sources=backend/app),
+        # so without this it silently matches nothing and shows 0% coverage.
+        # See docs.sonarsource.com .../python-test-coverage and
+        # docs.sonarsource.com .../javascript-typescript-test-coverage (same
+        # "monorepo path" issue, described there for the JS side).
+        run: sed -i 's|<source>app</source>|<source>backend/app</source>|' coverage.xml
+
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
@@ -83,6 +94,13 @@ jobs:
       - name: Run frontend tests with coverage
         working-directory: frontend
         run: npm run test:coverage
+
+      - name: Fix lcov.info paths for monorepo layout
+        working-directory: frontend
+        # Same one-directory-short problem as the Python coverage.xml fix
+        # above: Vitest writes `SF:src/...` relative to frontend/, but
+        # sonar.sources=frontend/src is relative to the repo root.
+        run: sed -i 's|^SF:|SF:frontend/|' coverage/lcov.info
 
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@7006c4492b2e0ee0f816d36501671557c97f5995 # v8.1.0

@@ -5,7 +5,7 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   error?: string;
 }
 
-export function Input({ label, error, id, className = "", ...props }: InputProps) {
+export function Input({ label, error, id, className = "", ...props }: Readonly<InputProps>) {
   const inputId = id ?? label.toLowerCase().replace(/\s+/g, "-");
   return (
     <div className="flex flex-col gap-1">

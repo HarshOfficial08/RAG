@@ -15,7 +15,7 @@ function loadStoredClaims(): TokenClaims | null {
   return null;
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [claims, setClaims] = useState<TokenClaims | null>(loadStoredClaims);
 
   const value = useMemo<AuthState>(

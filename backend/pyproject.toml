@@ -48,6 +48,13 @@ disallow_untyped_defs = true
 testpaths = ["tests"]
 asyncio_mode = "auto"
 
+[tool.coverage.run]
+# Without this, coverage.py writes an absolute <source> path into coverage.xml
+# (e.g. /home/runner/work/...), which SonarQube Cloud's scanner can't resolve
+# against its own checkout — the exact reason coverage import silently fails
+# in CI. See docs.sonarsource.com .../python-test-coverage.
+relative_files = true
+
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
