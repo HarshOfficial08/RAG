@@ -1,0 +1,55 @@
+# Secrets — never commit real .env files (backend/.env holds a live API key)
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+data/
+
+# Node / frontend
+node_modules/
+dist/
+dist-ssr/
+coverage/
+test-results/
+playwright-report/
+**/e2e/screenshots/
+*.local
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Editor / OS
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Claude Code local settings (machine-specific permissions, not shared config)
+.claude/settings.local.json
+
+# Reference-only UI mockups — not part of the actual deliverable, per Stitch
+# review notes in docs/plan/08-frontend.md. Remove this line if you'd rather
+# keep it tracked.
+stitch_securerag_enterprise_ai_dashboard/
+
+# Assessment prompt document — not part of the deliverable.
+Assessment (2) (1).pdf
