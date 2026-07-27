@@ -7,7 +7,7 @@ from app.models.schemas import LoginRequest, LoginResponse
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=LoginResponse)
+@router.post("/login")
 async def login(request: LoginRequest) -> LoginResponse:
     user = authenticate(request.email, request.password)
     if user is None:

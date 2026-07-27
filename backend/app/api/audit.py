@@ -1,9 +1,9 @@
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.auth.dependencies import TenantContext, get_current_tenant
+from app.auth.dependencies import CurrentTenant
 from app.models.schemas import AuditLogEntry
 
 router = APIRouter(tags=["audit"])
@@ -24,8 +24,6 @@ def log_query(tenant_id: str, user_id: str, question: str, masking_triggered: bo
     _audit_log.setdefault(tenant_id, []).append(entry)
 
 
-@router.get("/audit-log", response_model=list[AuditLogEntry])
-async def list_audit_log(
-    tenant: TenantContext = Depends(get_current_tenant),
-) -> list[AuditLogEntry]:
+@router.get("/audit-log")
+async def list_audit_log(tenant: CurrentTenant) -> list[AuditLogEntry]:
     return _audit_log.get(tenant.tenant_id, [])

@@ -1,11 +1,14 @@
 import uuid
 from datetime import UTC, datetime
+from typing import Annotated
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, UploadFile
+from fastapi import APIRouter, BackgroundTasks, File, UploadFile
 
-from app.auth.dependencies import TenantContext, get_current_tenant
+from app.auth.dependencies import CurrentTenant
 from app.ingestion.pipeline import run as run_ingestion
 from app.models.schemas import DocumentRecord, DocumentStatus
+
+_UploadedFile = Annotated[UploadFile, File(...)]
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -15,10 +18,8 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 _documents: dict[str, dict[str, DocumentRecord]] = {}
 
 
-@router.get("", response_model=list[DocumentRecord])
-async def list_documents(
-    tenant: TenantContext = Depends(get_current_tenant),
-) -> list[DocumentRecord]:
+@router.get("")
+async def list_documents(tenant: CurrentTenant) -> list[DocumentRecord]:
     return list(_documents.get(tenant.tenant_id, {}).values())
 
 
@@ -39,11 +40,11 @@ def _ingest(tenant_id: str, document_id: str, filename: str, file_bytes: bytes) 
     )
 
 
-@router.post("", response_model=DocumentRecord)
+@router.post("")
 async def upload_document(
     background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    tenant: TenantContext = Depends(get_current_tenant),
+    file: _UploadedFile,
+    tenant: CurrentTenant,
 ) -> DocumentRecord:
     document_id = str(uuid.uuid4())
     filename = file.filename or "unnamed"

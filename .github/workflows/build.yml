@@ -31,17 +31,22 @@ jobs:
 
       - name: Install backend dependencies
         working-directory: backend
-        # Installs exactly the versions pinned in uv.lock (predictable,
-        # reproducible builds — see backend/uv.lock) and forbids building
-        # anything from a source distribution, only prebuilt wheels (avoids
-        # executing arbitrary setup.py/build-backend code during install).
-        # Verified locally in a clean environment that every dependency here
-        # resolves to a wheel under this constraint before adding it to CI.
-        env:
-          UV_ONLY_BINARY: ":all:"
+        # --frozen: install exactly what's pinned in uv.lock, never silently
+        # re-resolve/drift (predictable, reproducible builds).
+        # --no-build: forbid building third-party deps from a source
+        # distribution — wheels only, so a compromised package can't run
+        # arbitrary setup.py/build-backend code during install. Verified
+        # locally that every third-party dependency here resolves to a wheel
+        # under this constraint. --no-install-project excludes our own
+        # first-party code from that restriction (it's trusted, and an
+        # editable install of a local package is a normal "build" step, not a
+        # supply-chain risk) — it's installed separately, right below.
+        # `uv run` would re-sync (and re-hit --no-build) before every
+        # invocation, so later steps call the venv's binaries directly.
         run: |
-          uv sync --extra dev --extra rag --python 3.13
-          uv run python -m spacy download en_core_web_sm
+          uv sync --extra dev --extra rag --python 3.13 --frozen --no-build --no-install-project
+          uv pip install -e . --no-deps
+          .venv/bin/python -m spacy download en_core_web_sm
 
       - name: Wait for Qdrant
         # Polled from the runner host, not via a container health-check —
@@ -59,7 +64,7 @@ jobs:
         env:
           QDRANT_URL: http://localhost:6333
           JWT_SECRET: ci-only-placeholder-secret-32-bytes-minimum
-        run: uv run pytest --cov=app --cov-report=xml:coverage.xml
+        run: .venv/bin/pytest --cov=app --cov-report=xml:coverage.xml
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0

@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 
 from app.api.audit import log_query
-from app.auth.dependencies import TenantContext, get_current_tenant
+from app.auth.dependencies import CurrentTenant
 from app.generation.llm_client import GenerationUnavailableError, OllamaCloudClient
 from app.generation.prompt import RetrievedChunk, build_prompt
 from app.masking.presidio_service import mask
@@ -12,11 +12,8 @@ from app.retrieval.vector_store import search
 router = APIRouter(tags=["query"])
 
 
-@router.post("/query", response_model=QueryResponse)
-async def ask_question(
-    request: QueryRequest,
-    tenant: TenantContext = Depends(get_current_tenant),
-) -> QueryResponse:
+@router.post("/query")
+async def ask_question(request: QueryRequest, tenant: CurrentTenant) -> QueryResponse:
     query_vector = embed(request.question)
     chunks = search(tenant.tenant_id, query_vector)
 

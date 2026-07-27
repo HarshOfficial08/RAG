@@ -39,11 +39,6 @@ target-version = "py313"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM"]
 
-[tool.ruff.lint.flake8-bugbear]
-# FastAPI's dependency injection idiom is `param: T = Depends(...)` — B008 doesn't
-# know this is a FastAPI project, so allow it for the DI helpers specifically.
-extend-immutable-calls = ["fastapi.Depends", "fastapi.File", "fastapi.Query", "fastapi.Body", "fastapi.Path", "fastapi.Header"]
-
 [tool.mypy]
 python_version = "3.13"
 strict = true

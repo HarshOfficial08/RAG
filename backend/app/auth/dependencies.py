@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Annotated
 
 import jwt as pyjwt
 from fastapi import Depends, HTTPException, status
@@ -7,6 +8,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.auth.jwt import decode_access_token
 
 _security = HTTPBearer()
+_Credentials = Annotated[HTTPAuthorizationCredentials, Depends(_security)]
 
 
 @dataclass(frozen=True)
@@ -24,9 +26,7 @@ class TenantContext:
     tenant_name: str
 
 
-def get_current_tenant(
-    credentials: HTTPAuthorizationCredentials = Depends(_security),
-) -> TenantContext:
+def get_current_tenant(credentials: _Credentials) -> TenantContext:
     try:
         payload = decode_access_token(credentials.credentials)
     except pyjwt.ExpiredSignatureError as exc:
@@ -41,5 +41,10 @@ def get_current_tenant(
     return TenantContext(
         user_id=payload["sub"],
         tenant_id=payload["tenant_id"],
-        tenant_name=payload.get("tenant_name", payload["tenant_id"]),
+        tenant_name=str(payload.get("tenant_name") or payload["tenant_id"]),
     )
+
+
+# Shared FastAPI dependency annotation — every protected endpoint takes
+# `tenant: CurrentTenant` instead of repeating `Depends(get_current_tenant)`.
+CurrentTenant = Annotated[TenantContext, Depends(get_current_tenant)]
