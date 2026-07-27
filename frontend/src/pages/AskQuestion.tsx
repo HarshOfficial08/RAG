@@ -6,6 +6,7 @@ import { Card } from "../components/Card";
 import type { QueryResponse } from "../types";
 
 interface Turn {
+  id: string;
   question: string;
   response?: QueryResponse;
 }
@@ -17,7 +18,7 @@ export function AskQuestion() {
   const ask = useMutation({
     mutationFn: askQuestion,
     onSuccess: (response, question) => {
-      setTurns((prev) => [...prev, { question, response }]);
+      setTurns((prev) => [...prev, { id: crypto.randomUUID(), question, response }]);
     },
   });
 
@@ -36,8 +37,8 @@ export function AskQuestion() {
       </p>
 
       <div className="flex flex-col gap-4">
-        {turns.map((turn, i) => (
-          <div key={i} className="flex flex-col gap-2">
+        {turns.map((turn) => (
+          <div key={turn.id} className="flex flex-col gap-2">
             <Card className="ml-auto bg-surface-container-high">{turn.question}</Card>
             {turn.response && (
               <Card>

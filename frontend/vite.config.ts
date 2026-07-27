@@ -10,6 +10,9 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // e2e/ holds Playwright specs (own runner, own test/expect API) — Vitest's
+    // default glob would otherwise also try to collect them as unit tests.
+    exclude: ["**/node_modules/**", "**/dist/**", "e2e/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],

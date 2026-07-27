@@ -26,11 +26,22 @@ jobs:
         with:
           python-version: "3.13"
 
+      - name: Set up uv
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+
       - name: Install backend dependencies
         working-directory: backend
+        # Installs exactly the versions pinned in uv.lock (predictable,
+        # reproducible builds — see backend/uv.lock) and forbids building
+        # anything from a source distribution, only prebuilt wheels (avoids
+        # executing arbitrary setup.py/build-backend code during install).
+        # Verified locally in a clean environment that every dependency here
+        # resolves to a wheel under this constraint before adding it to CI.
+        env:
+          UV_ONLY_BINARY: ":all:"
         run: |
-          pip install -e ".[dev,rag]"
-          python -m spacy download en_core_web_sm
+          uv sync --extra dev --extra rag --python 3.13
+          uv run python -m spacy download en_core_web_sm
 
       - name: Wait for Qdrant
         # Polled from the runner host, not via a container health-check —
@@ -48,7 +59,7 @@ jobs:
         env:
           QDRANT_URL: http://localhost:6333
           JWT_SECRET: ci-only-placeholder-secret-32-bytes-minimum
-        run: pytest --cov=app --cov-report=xml:coverage.xml
+        run: uv run pytest --cov=app --cov-report=xml:coverage.xml
 
       - name: Set up Node
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
@@ -57,7 +68,12 @@ jobs:
 
       - name: Install frontend dependencies
         working-directory: frontend
-        run: npm ci
+        # --ignore-scripts: no installed package here relies on install-time
+        # scripts on Linux (verified locally — the only package with an
+        # install script, fsevents, is macOS-only and never installs on this
+        # runner anyway), so lifecycle scripts are disabled to prevent
+        # arbitrary code execution from a compromised/malicious dependency.
+        run: npm ci --ignore-scripts
 
       - name: Run frontend tests with coverage
         working-directory: frontend

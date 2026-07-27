@@ -27,9 +27,11 @@ export function Settings() {
           {OPTIONS.map((option) => (
             <label
               key={option.value}
+              htmlFor={`sensitivity-${option.value}`}
               className="flex cursor-pointer items-start gap-3 rounded-md border border-surface-border p-3 has-[:checked]:border-accent"
             >
               <input
+                id={`sensitivity-${option.value}`}
                 type="radio"
                 name="sensitivity"
                 value={option.value}

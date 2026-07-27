@@ -33,6 +33,7 @@ export function Layout() {
           </nav>
         </div>
         <button
+          type="button"
           onClick={logout}
           className="mt-4 text-left text-sm text-on-surface-muted hover:text-on-surface"
         >
