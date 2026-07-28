@@ -4,6 +4,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from app.ingestion.pipeline import run as run_ingestion
+from app.retrieval.vector_store import delete_document
 
 ACME = {"email": "alice@acme.example", "password": "acme-demo-pass"}
 GLOBEX = {"email": "bob@globex.example", "password": "globex-demo-pass"}
@@ -33,9 +34,10 @@ def test_query_answers_only_from_own_tenants_documents(client: TestClient) -> No
     token_b = _login(client, GLOBEX)
 
     marker = uuid.uuid4().hex[:12]
+    document_id = f"doc-fixture-{marker}"
     run_ingestion(
         "tenant-acme",
-        f"doc-fixture-{marker}",
+        document_id,
         "policy.txt",
         f"Refund policy {marker}: refunds are processed within 5 business days.".encode(),
     )
@@ -63,6 +65,13 @@ def test_query_answers_only_from_own_tenants_documents(client: TestClient) -> No
     assert response_b.status_code == 200
     assert body_b["sources"] == [], "tenant B must never receive tenant A's document as a source"
     assert "couldn't find" in body_b["answer"].lower()
+
+    # This test bypasses the /documents API (calls run_ingestion directly),
+    # so there's no matching DELETE to clean it up automatically — without
+    # this, each run leaves another orphaned chunk that pads out future
+    # runs' top-k results (this exact class of bug has bitten this suite
+    # more than once).
+    delete_document("tenant-acme", document_id)
 
 
 def test_query_is_logged_to_the_caller_tenants_audit_log(client: TestClient) -> None:

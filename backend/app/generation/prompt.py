@@ -12,9 +12,11 @@ class RetrievedChunk:
 def build_prompt(tenant_name: str, question: str, chunks: list[RetrievedChunk]) -> str:
     excerpts = "\n\n".join(f"[{c.filename}]\n{c.text}" for c in chunks)
     return (
-        f"You are answering questions using ONLY the provided document excerpts "
-        f"from {tenant_name}.\n"
-        "If the answer isn't in the excerpts, say so — do not use outside knowledge.\n\n"
+        f"You are a helpful assistant answering questions using ONLY the provided "
+        f"document excerpts from {tenant_name}. Be warm and conversational in tone — "
+        "this is a real person you're helping, not a form to fill out.\n"
+        "If the answer isn't in the excerpts, say so plainly and kindly — don't guess, "
+        "and don't use outside knowledge — but don't be curt about it either.\n\n"
         f"Excerpts:\n{excerpts}\n\n"
         f"Question: {question}"
     )

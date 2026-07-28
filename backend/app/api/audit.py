@@ -1,3 +1,4 @@
+import sqlite3
 import uuid
 from datetime import UTC, datetime
 
@@ -5,25 +6,46 @@ from fastapi import APIRouter
 
 from app.auth.dependencies import CurrentTenant
 from app.models.schemas import AuditLogEntry
+from app.storage.db import get_connection
 
 router = APIRouter(tags=["audit"])
 
-_audit_log: dict[str, list[AuditLogEntry]] = {}
+
+def _row_to_entry(row: sqlite3.Row) -> AuditLogEntry:
+    return AuditLogEntry(
+        id=row["id"],
+        timestamp=row["timestamp"],
+        user_id=row["user_id"],
+        question=row["question"],
+        masking_triggered=bool(row["masking_triggered"]),
+    )
 
 
 def log_query(tenant_id: str, user_id: str, question: str, masking_triggered: bool) -> None:
     # Deliberately logs only the question and a boolean flag — never the raw
     # retrieved chunk text or full answer, per docs/plan/07-rag-generation.md.
-    entry = AuditLogEntry(
-        id=str(uuid.uuid4()),
-        timestamp=datetime.now(UTC).isoformat(),
-        user_id=user_id,
-        question=question,
-        masking_triggered=masking_triggered,
+    conn = get_connection()
+    conn.execute(
+        "INSERT INTO audit_log (id, tenant_id, user_id, question, masking_triggered, timestamp) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (
+            str(uuid.uuid4()),
+            tenant_id,
+            user_id,
+            question,
+            int(masking_triggered),
+            datetime.now(UTC).isoformat(),
+        ),
     )
-    _audit_log.setdefault(tenant_id, []).append(entry)
+    conn.commit()
+    conn.close()
 
 
 @router.get("/audit-log")
 async def list_audit_log(tenant: CurrentTenant) -> list[AuditLogEntry]:
-    return _audit_log.get(tenant.tenant_id, [])
+    conn = get_connection()
+    rows = conn.execute(
+        "SELECT * FROM audit_log WHERE tenant_id = ? ORDER BY timestamp DESC", (tenant.tenant_id,)
+    ).fetchall()
+    conn.close()
+    return [_row_to_entry(row) for row in rows]

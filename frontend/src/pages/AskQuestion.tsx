@@ -1,5 +1,7 @@
 import { useMutation } from "@tanstack/react-query";
+import { Loader2, Send } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
+import Markdown from "react-markdown";
 import { askQuestion } from "../api/query";
 import { Button } from "../components/Button";
 import { Card } from "../components/Card";
@@ -42,7 +44,9 @@ export function AskQuestion() {
             <Card className="ml-auto bg-surface-container-high">{turn.question}</Card>
             {turn.response && (
               <Card>
-                <p>{turn.response.answer}</p>
+                <div className="prose prose-sm max-w-none prose-p:my-2 prose-headings:my-2">
+                  <Markdown>{turn.response.answer}</Markdown>
+                </div>
                 {turn.response.sources.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-2 border-t border-surface-border pt-2">
                     {turn.response.sources.map((s) => (
@@ -59,7 +63,12 @@ export function AskQuestion() {
             )}
           </div>
         ))}
-        {ask.isPending && <Card className="text-on-surface-muted">Thinking...</Card>}
+        {ask.isPending && (
+          <Card className="flex items-center gap-2 text-on-surface-muted">
+            <Loader2 size={16} className="animate-spin" />
+            Thinking...
+          </Card>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="flex gap-2">
@@ -70,6 +79,7 @@ export function AskQuestion() {
           className="flex-1 rounded-md border border-surface-border bg-surface-container px-3 py-2 text-sm focus:border-accent focus:outline-none"
         />
         <Button type="submit" disabled={ask.isPending}>
+          <Send size={16} />
           Send
         </Button>
       </form>

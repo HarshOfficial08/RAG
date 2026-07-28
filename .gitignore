@@ -14,6 +14,7 @@ __pycache__/
 .coverage
 htmlcov/
 data/
+*.db
 
 # Node / frontend
 node_modules/
@@ -53,3 +54,6 @@ stitch_securerag_enterprise_ai_dashboard/
 
 # Assessment prompt document — not part of the deliverable.
 Assessment (2) (1).pdf
+
+# Local test fixtures for manually exercising document upload.
+sample-documents/

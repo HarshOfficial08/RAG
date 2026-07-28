@@ -79,6 +79,54 @@ def upsert(tenant_id: str, document_id: str, filename: str, chunks: list[str]) -
     client.upsert(collection_name=settings.qdrant_collection, points=points)
 
 
+def delete_document(tenant_id: str, document_id: str) -> None:
+    # Filtered on tenant_id AND document_id, same as search() — a tenant can
+    # only ever delete its own chunks, even if it somehow guessed another
+    # tenant's document_id.
+    client = _get_client()
+    _ensure_collection(client, settings.qdrant_collection)
+    client.delete(
+        collection_name=settings.qdrant_collection,
+        points_selector=Filter(
+            must=[
+                FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id)),
+                FieldCondition(key="document_id", match=MatchValue(value=document_id)),
+            ]
+        ),
+    )
+
+
+def get_document_chunks(tenant_id: str, document_id: str) -> list[Chunk]:
+    """Fetches every chunk for one document, in order — used to preview what
+    was actually indexed (i.e. the masked text), not a vector search. Same
+    tenant_id + document_id filter as delete_document(): a tenant can only
+    ever read back its own chunks.
+    """
+    client = _get_client()
+    _ensure_collection(client, settings.qdrant_collection)
+    points, _ = client.scroll(
+        collection_name=settings.qdrant_collection,
+        scroll_filter=Filter(
+            must=[
+                FieldCondition(key="tenant_id", match=MatchValue(value=tenant_id)),
+                FieldCondition(key="document_id", match=MatchValue(value=document_id)),
+            ]
+        ),
+        limit=1000,
+    )
+    chunks = [
+        Chunk(
+            document_id=str(point.payload["document_id"]),
+            chunk_index=int(point.payload["chunk_index"]),
+            text=str(point.payload["text"]),
+            filename=str(point.payload["filename"]),
+        )
+        for point in points
+        if point.payload is not None
+    ]
+    return sorted(chunks, key=lambda c: c.chunk_index)
+
+
 def search(tenant_id: str, query_vector: list[float], k: int = 5) -> list[Chunk]:
     client = _get_client()
     _ensure_collection(client, settings.qdrant_collection)

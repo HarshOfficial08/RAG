@@ -24,6 +24,9 @@ class TenantContext:
     user_id: str
     tenant_id: str
     tenant_name: str
+    role: str
+    email: str
+    name: str
 
 
 def get_current_tenant(credentials: _Credentials) -> TenantContext:
@@ -42,6 +45,9 @@ def get_current_tenant(credentials: _Credentials) -> TenantContext:
         user_id=payload["sub"],
         tenant_id=payload["tenant_id"],
         tenant_name=str(payload.get("tenant_name") or payload["tenant_id"]),
+        role=str(payload.get("role") or "admin"),
+        email=str(payload.get("email") or ""),
+        name=str(payload.get("name") or ""),
     )
 
 

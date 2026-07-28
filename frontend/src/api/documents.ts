@@ -14,3 +14,14 @@ export async function uploadDocument(file: File): Promise<DocumentRecord> {
   });
   return data;
 }
+
+export async function deleteDocument(id: string): Promise<void> {
+  await apiClient.delete(`/documents/${id}`);
+}
+
+export async function getDocumentPreview(id: string): Promise<{ filename: string; text: string }> {
+  const { data } = await apiClient.get<{ filename: string; text: string }>(
+    `/documents/${id}/preview`,
+  );
+  return data;
+}

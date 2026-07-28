@@ -5,6 +5,40 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SecureRAG</title>
+    <script>
+      // Runs synchronously, before first paint — sets the theme attribute
+      // before any CSS is applied, so there's no flash of the wrong theme
+      // while React mounts and its own useEffect catches up (see
+      // src/components/ThemeToggle.tsx, which reuses this same logic).
+      (function () {
+        var stored = localStorage.getItem("securerag_theme");
+        var theme =
+          stored === "light" || stored === "dark"
+            ? stored
+            : window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+    <style>
+      /* Critical colors only, duplicated from src/index.css. Vite's dev
+         server loads the real stylesheet via a deferred JS module (not a
+         blocking <link>), so without this there's a brief unstyled flash on
+         every dev-server refresh regardless of the theme script above —
+         production builds emit a real blocking <link> and don't need this,
+         but it's harmless there too since the real stylesheet loads instantly
+         and simply overrides these same values. */
+      html[data-theme="light"] {
+        background: #f7f8fa;
+        color: #191c1e;
+      }
+      html[data-theme="dark"],
+      html:not([data-theme]) {
+        background: #0e0e0f;
+        color: #e5e2e2;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>

@@ -27,6 +27,18 @@ class Settings(BaseSettings):
     retrieval_score_threshold: float = 0.35
 
     document_storage_path: str = "./data/documents"
+    # Users, document metadata, and the audit log all live here — a plain
+    # in-memory dict doesn't survive a process restart (which `--reload`
+    # triggers on every code change), so anything meant to look like a real
+    # app needs this on disk from the start.
+    database_path: str = "./data/app.db"
+
+    smtp_host: str = "smtp.gmail.com"
+    smtp_port: int = 587
+    smtp_user: str = ""
+    smtp_pass: str = ""
+    # Used to build the link inside password-reset emails.
+    frontend_base_url: str = "http://localhost:5173"
 
 
 settings = Settings()
