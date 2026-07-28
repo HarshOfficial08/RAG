@@ -199,16 +199,14 @@ export function Documents() {
       </div>
 
       {previewDoc && (
-        <div
-          role="presentation"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-          onClick={() => setPreviewDoc(null)}
-          onKeyDown={(e) => e.key === "Escape" && setPreviewDoc(null)}
-        >
-          <Card
-            className="flex max-h-[80vh] w-full max-w-2xl flex-col gap-4 p-0"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <button
+            type="button"
+            aria-label="Close preview backdrop"
+            className="fixed inset-0 bg-black/60 border-0 cursor-default"
+            onClick={() => setPreviewDoc(null)}
+          />
+          <Card className="relative z-10 flex max-h-[80vh] w-full max-w-2xl flex-col gap-4 p-0">
             <div className="flex items-center justify-between border-b border-surface-border p-4">
               <h2 className="flex items-center gap-2 font-medium">
                 <FileText size={16} className="text-on-surface-muted" />

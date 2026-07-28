@@ -15,7 +15,9 @@ function errorStatus(err: unknown): number | undefined {
 
 // ─── Add Member Form ─────────────────────────────────────────────────────────
 
-function AddMemberForm({ onAdded }: { onAdded: () => void }) {
+// ─── Add Member Form ─────────────────────────────────────────────────────────
+
+function AddMemberForm({ onAdded }: Readonly<{ onAdded: () => void }>) {
   const { tenantName } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -46,13 +48,13 @@ function AddMemberForm({ onAdded }: { onAdded: () => void }) {
       onAdded();
     } catch (err) {
       const status = errorStatus(err);
-      setError(
-        status === 409
-          ? "An account with that email already exists."
-          : status === 403
-            ? "Only an organization admin can add members."
-            : "Something went wrong adding this member.",
-      );
+      if (status === 409) {
+        setError("An account with that email already exists.");
+      } else if (status === 403) {
+        setError("Only an organization admin can add members.");
+      } else {
+        setError("Something went wrong adding this member.");
+      }
     } finally {
       setSubmitting(false);
     }
@@ -105,11 +107,11 @@ function EditMemberModal({
   member,
   onClose,
   onSaved,
-}: {
+}: Readonly<{
   member: MemberRecord;
   onClose: () => void;
   onSaved: () => void;
-}) {
+}>) {
   const qc = useQueryClient();
   const [name, setName] = useState(member.name);
   const [email, setEmail] = useState(member.email);
@@ -131,27 +133,25 @@ function EditMemberModal({
     },
     onError: (err) => {
       const status = errorStatus(err);
-      setError(
-        status === 409
-          ? "That email is already in use."
-          : status === 404
-            ? "Member not found."
-            : "Something went wrong updating this member.",
-      );
+      if (status === 409) {
+        setError("That email is already in use.");
+      } else if (status === 404) {
+        setError("Member not found.");
+      } else {
+        setError("Something went wrong updating this member.");
+      }
     },
   });
 
   return (
-    <div
-      role="presentation"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
-      onClick={onClose}
-      onKeyDown={(e) => e.key === "Escape" && onClose()}
-    >
-      <Card
-        className="w-full max-w-md"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <button
+        type="button"
+        aria-label="Close edit member backdrop"
+        className="fixed inset-0 bg-black/60 border-0 cursor-default"
+        onClick={onClose}
+      />
+      <Card className="relative z-10 w-full max-w-md">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="flex items-center gap-2 font-medium">
             <Pencil size={16} className="text-accent" />
@@ -222,12 +222,12 @@ function MemberRow({
   isSelf,
   onEdit,
   onDelete,
-}: {
+}: Readonly<{
   member: MemberRecord;
   isSelf: boolean;
   onEdit: () => void;
   onDelete: () => void;
-}) {
+}>) {
   return (
     <tr className="border-b border-surface-border last:border-0">
       <td className="flex items-center gap-3 p-3">

@@ -25,7 +25,7 @@ const MEMBER_NAV_ITEMS = [
   { to: "/ask", label: "Ask a Question", icon: MessageSquareText },
 ];
 
-const navLinkClass = ({ isActive }: { isActive: boolean }) =>
+const navLinkClass = ({ isActive }: Readonly<{ isActive: boolean }>) =>
   `flex items-center gap-2 rounded-md px-3 py-2 text-sm ${
     isActive
       ? "bg-surface-container-high text-on-surface"

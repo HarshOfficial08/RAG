@@ -117,13 +117,13 @@ function ChangeEmailCard() {
       setStep("verify");
     } catch (err) {
       const status = errorStatus(err);
-      setError(
-        status === 400
-          ? "Current password is incorrect."
-          : status === 409
-            ? "An account with that email already exists."
-            : "Something went wrong sending the verification code.",
-      );
+      if (status === 400) {
+        setError("Current password is incorrect.");
+      } else if (status === 409) {
+        setError("An account with that email already exists.");
+      } else {
+        setError("Something went wrong sending the verification code.");
+      }
     } finally {
       setSubmitting(false);
     }
