@@ -12,12 +12,15 @@
       // src/components/ThemeToggle.tsx, which reuses this same logic).
       (function () {
         var stored = localStorage.getItem("securerag_theme");
-        var theme =
-          stored === "light" || stored === "dark"
-            ? stored
-            : window.matchMedia("(prefers-color-scheme: light)").matches
-              ? "light"
-              : "dark";
+        var prefersLight = window.matchMedia("(prefers-color-scheme: light)").matches;
+        var theme;
+        if (stored === "light" || stored === "dark") {
+          theme = stored;
+        } else if (prefersLight) {
+          theme = "light";
+        } else {
+          theme = "dark";
+        }
         document.documentElement.dataset.theme = theme;
       })();
     </script>

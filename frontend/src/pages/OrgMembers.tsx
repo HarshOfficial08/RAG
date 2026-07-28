@@ -143,8 +143,10 @@ function EditMemberModal({
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={onClose}
+      onKeyDown={(e) => e.key === "Escape" && onClose()}
     >
       <Card
         className="w-full max-w-md"
@@ -236,7 +238,10 @@ function MemberRow({
           <p className="font-medium leading-tight">
             {member.name}
             {isSelf && (
-              <span className="ml-2 text-xs text-on-surface-muted">(you)</span>
+              <>
+                {" "}
+                <span className="text-xs text-on-surface-muted">(you)</span>
+              </>
             )}
           </p>
           <p className="text-xs text-on-surface-muted">{member.email}</p>

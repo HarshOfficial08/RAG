@@ -200,8 +200,10 @@ export function Documents() {
 
       {previewDoc && (
         <div
+          role="presentation"
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
           onClick={() => setPreviewDoc(null)}
+          onKeyDown={(e) => e.key === "Escape" && setPreviewDoc(null)}
         >
           <Card
             className="flex max-h-[80vh] w-full max-w-2xl flex-col gap-4 p-0"
