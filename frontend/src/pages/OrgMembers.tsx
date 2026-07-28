@@ -305,6 +305,39 @@ export function OrgMembers() {
     }
   }
 
+  function renderMembersContent() {
+    if (isLoading) {
+      return <p className="p-4 text-sm text-on-surface-muted">Loading members…</p>;
+    }
+    if (members.length === 0) {
+      return <p className="p-4 text-sm text-on-surface-muted">No members yet.</p>;
+    }
+    return (
+      <table className="w-full text-left text-sm">
+        <thead className="text-on-surface-muted">
+          <tr className="border-b border-surface-border">
+            <th className="p-3 font-normal">Member</th>
+            <th className="p-3 font-normal">Role</th>
+            <th className="p-3 font-normal">
+              <span className="sr-only">Actions</span>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {members.map((m) => (
+            <MemberRow
+              key={m.user_id}
+              member={m}
+              isSelf={m.user_id === userId}
+              onEdit={() => setEditingMember(m)}
+              onDelete={() => handleDelete(m)}
+            />
+          ))}
+        </tbody>
+      </table>
+    );
+  }
+
   return (
     <div className="flex max-w-2xl flex-col gap-6">
       <div className="flex items-center gap-3">
@@ -319,34 +352,7 @@ export function OrgMembers() {
 
       {/* Members list */}
       <Card className="p-0">
-        {isLoading ? (
-          <p className="p-4 text-sm text-on-surface-muted">Loading members…</p>
-        ) : members.length === 0 ? (
-          <p className="p-4 text-sm text-on-surface-muted">No members yet.</p>
-        ) : (
-          <table className="w-full text-left text-sm">
-            <thead className="text-on-surface-muted">
-              <tr className="border-b border-surface-border">
-                <th className="p-3 font-normal">Member</th>
-                <th className="p-3 font-normal">Role</th>
-                <th className="p-3 font-normal">
-                  <span className="sr-only">Actions</span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => (
-                <MemberRow
-                  key={m.user_id}
-                  member={m}
-                  isSelf={m.user_id === userId}
-                  onEdit={() => setEditingMember(m)}
-                  onDelete={() => handleDelete(m)}
-                />
-              ))}
-            </tbody>
-          </table>
-        )}
+        {renderMembersContent()}
       </Card>
 
       {/* Permission summary */}
@@ -357,19 +363,19 @@ export function OrgMembers() {
         <ul className="flex flex-col gap-2 text-sm text-on-surface-muted">
           <li className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent" />
-            Can query documents using Ask a Question
+            <span>Can query documents using Ask a Question</span>
           </li>
           <li className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-danger" />
-            Cannot upload or delete documents
+            <span>Cannot upload or delete documents</span>
           </li>
           <li className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-danger" />
-            Cannot add or manage members
+            <span>Cannot add or manage members</span>
           </li>
           <li className="flex items-center gap-2">
             <span className="inline-block h-1.5 w-1.5 rounded-full bg-danger" />
-            Cannot access Settings or Audit Log
+            <span>Cannot access Settings or Audit Log</span>
           </li>
         </ul>
       </Card>
