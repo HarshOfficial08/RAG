@@ -36,7 +36,8 @@ _FRIENDLY_INTRO = (
 @router.post("/query")
 async def ask_question(request: QueryRequest, tenant: CurrentTenant) -> QueryResponse:
     if _SMALL_TALK.match(request.question):
-        log_query(tenant.tenant_id, tenant.user_id, request.question, False)
+        masked_question = mask(request.question)
+        log_query(tenant.tenant_id, tenant.user_id, masked_question.masked_text, False)
         return QueryResponse(answer=_FRIENDLY_INTRO, sources=[])
 
     query_vector = embed(request.question)
@@ -70,7 +71,12 @@ async def ask_question(request: QueryRequest, tenant: CurrentTenant) -> QueryRes
         masking_triggered = masking_triggered or output_result.triggered
         answer = output_result.masked_text
 
-    log_query(tenant.tenant_id, tenant.user_id, request.question, masking_triggered)
+    # Mask the question itself before logging — a user could type PII in
+    # their question (e.g. "What is Sarah's SSN?") and we must not persist
+    # that raw to the audit trail.
+    masked_question_result = mask(request.question)
+    masking_triggered = masking_triggered or masked_question_result.triggered
+    log_query(tenant.tenant_id, tenant.user_id, masked_question_result.masked_text, masking_triggered)
 
     # Dedupe by document_id — repeated uploads of the same-named file (or
     # multiple chunks from one document) shouldn't show the same citation

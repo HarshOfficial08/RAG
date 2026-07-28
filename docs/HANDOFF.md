@@ -238,7 +238,7 @@ flowchart TD
     Generate --> OutMask["Re-mask generated answer"]
     OutMask --> ShowAnswer["Answer + deduped source citations shown"]
     NotFound --> AuditWrite
-    ShowAnswer --> AuditWrite["Audit log entry written<br/>(question + masking_triggered flag only —<br/>never raw chunk text or the answer)"]
+    ShowAnswer --> AuditWrite["Audit log entry written<br/>(masked question + masking_triggered flag only —<br/>never raw question text, chunk text, or the answer)"]
 
     Documents --> AuditPage["Audit Log page — admin only<br/>GET /audit-log (tenant-scoped)"]
 
@@ -257,7 +257,6 @@ Things worth calling out that aren't obvious from the diagram alone:
 - **Members are strictly read-query-only.** After login, members land on `/ask` and see only that page in the nav. They cannot access Documents, Audit Log, Settings, or the Members page. Attempting to navigate there directly redirects them to `/ask`. Upload and delete endpoints also return `403` at the backend level — the frontend restriction is just UX.
 - **Small talk never touches retrieval, masking-on-output, or the LLM** — it's a pure regex short-circuit (`backend/app/api/query.py`, `_SMALL_TALK`) that exists purely so "hi" doesn't produce a cold refusal with bogus source citations. It still gets logged to the audit trail.
 - **Sources are deduplicated by `document_id`** before being returned, so multiple chunks from the same document (or repeated uploads of a similarly-named file) don't show the same citation multiple times.
-- **The masking-sensitivity selector on the Settings page is UI-only right now** — it doesn't yet call any backend endpoint (there's a `Save changes` button but no wired mutation). If you're asked to extend this, that's the obvious next real feature, not a bug to "fix" silently.
 
 ## 9. Frontend structure
 
@@ -301,6 +300,5 @@ Qdrant runs via Docker (started through Colima on this machine, since Docker Des
 
 - OTP/reset-token stores are in-memory and don't survive a backend restart.
 - No rate limiting on OTP request/verify endpoints.
-- Masking-sensitivity selector on Settings is UI-only, not wired to any backend behavior.
-- Invited employees have no UI to set their own display name — it defaults to their email's local-part until a "my profile" edit flow exists.
+- Invited members have no UI to set their own display name — it defaults to their email's local-part until a "my profile" edit flow exists.
 - SQLite `tenant_id` is a plain shared string, not an enforced foreign key — isolation is an application-code invariant (consistently applied, but not schema-enforced).

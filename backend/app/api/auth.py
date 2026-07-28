@@ -7,12 +7,16 @@ from app.auth.reset_tokens import consume_reset_token, generate_reset_token
 from app.auth.signup_otp import consume_signup_otp, generate_signup_otp
 from app.auth.users import (
     EmailAlreadyRegisteredError,
+    MemberNotFoundError,
     authenticate,
     create_user_with_hash,
+    delete_member,
     hash_password,
     invite_user,
+    list_members,
     set_email,
     set_password,
+    update_member,
     user_exists,
 )
 from app.config import settings
@@ -24,8 +28,10 @@ from app.models.schemas import (
     InviteEmployeeRequest,
     LoginRequest,
     LoginResponse,
+    MemberRecord,
     ResetPasswordRequest,
     SignupRequest,
+    UpdateMemberRequest,
     VerifyOtpRequest,
 )
 from app.notifications.mailer import MailerNotConfiguredError, send_email
@@ -262,3 +268,82 @@ async def verify_change_email_otp(
         tenant.user_id, tenant.tenant_id, tenant.tenant_name, tenant.role, new_email, tenant.name
     )
     return LoginResponse(token=token)
+
+
+@router.get("/members")
+async def get_members(tenant: CurrentTenant) -> list[MemberRecord]:
+    """Admin-only: list all users in the caller's organization."""
+    if tenant.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only an organization admin can list members",
+        )
+    members = list_members(tenant.tenant_id)
+    return [
+        MemberRecord(user_id=m.user_id, name=m.name, email=m.email, role=m.role)
+        for m in members
+    ]
+
+
+@router.patch("/members/{user_id}")
+async def patch_member(
+    user_id: str, request: UpdateMemberRequest, tenant: CurrentTenant
+) -> MemberRecord:
+    """Admin-only: update a member's name, email, and/or password.
+
+    An admin can edit any member in their org, including themselves —
+    but changing your own email still goes through the OTP-verified
+    /auth/change-email/* flow (this endpoint is for admin-managed edits).
+    """
+    if tenant.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only an organization admin can edit members",
+        )
+    try:
+        updated = update_member(
+            tenant.tenant_id,
+            user_id,
+            name=request.name,
+            email=request.email,
+            password=request.password,
+        )
+    except MemberNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
+        ) from exc
+    except EmailAlreadyRegisteredError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT, detail=_EMAIL_ALREADY_REGISTERED
+        ) from exc
+    return MemberRecord(
+        user_id=updated.user_id,
+        name=updated.name,
+        email=updated.email,
+        role=updated.role,
+    )
+
+
+@router.delete("/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def remove_member(user_id: str, tenant: CurrentTenant) -> None:
+    """Admin-only: permanently remove a member from the organization.
+
+    An admin cannot delete their own account through this endpoint —
+    that prevents accidentally locking the org out of its only admin.
+    """
+    if tenant.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only an organization admin can remove members",
+        )
+    if user_id == tenant.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="You cannot remove your own account",
+        )
+    try:
+        delete_member(tenant.tenant_id, user_id)
+    except MemberNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Member not found"
+        ) from exc

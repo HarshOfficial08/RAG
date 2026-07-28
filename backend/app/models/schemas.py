@@ -96,3 +96,17 @@ class AuditLogEntry(BaseModel):
     user_id: str
     question: str
     masking_triggered: bool
+
+
+class MemberRecord(BaseModel):
+    user_id: str
+    name: str
+    email: str
+    role: str
+
+
+class UpdateMemberRequest(BaseModel):
+    name: str | None = None
+    email: str | None = None
+    password: str | None = Field(default=None, min_length=8)
+

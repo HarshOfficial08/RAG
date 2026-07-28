@@ -235,3 +235,103 @@ def set_email(current_email: str, new_email: str) -> None:
     )
     conn.commit()
     conn.close()
+
+
+def list_members(tenant_id: str) -> list[User]:
+    """Return all users belonging to the given tenant, ordered by role then name."""
+    conn = _connection()
+    rows = conn.execute(
+        "SELECT * FROM users WHERE tenant_id = ? ORDER BY role ASC, name ASC",
+        (tenant_id,),
+    ).fetchall()
+    conn.close()
+    return [_row_to_user(row) for row in rows]
+
+
+class MemberNotFoundError(Exception):
+    """Raised when a member with the given user_id is not found in the tenant."""
+
+
+def update_member(
+    tenant_id: str,
+    user_id: str,
+    *,
+    name: str | None = None,
+    email: str | None = None,
+    password: str | None = None,
+) -> User:
+    """Admin updates a member's name, email, and/or password.
+
+    All fields are optional — only provided (non-None) fields are changed.
+    Email uniqueness is enforced across the whole users table (not just the
+    tenant), consistent with the rest of the auth layer.
+    """
+    conn = _connection()
+    row = conn.execute(
+        "SELECT * FROM users WHERE user_id = ? AND tenant_id = ?",
+        (user_id, tenant_id),
+    ).fetchone()
+    if row is None:
+        conn.close()
+        raise MemberNotFoundError(f"No member {user_id} in tenant {tenant_id}")
+
+    current = _row_to_user(row)
+
+    if email is not None and email != current.email:
+        clash = conn.execute(
+            "SELECT 1 FROM users WHERE email = ? AND user_id != ?", (email, user_id)
+        ).fetchone()
+        if clash is not None:
+            conn.close()
+            raise EmailAlreadyRegisteredError(f"{email} is already registered")
+        conn.execute(
+            "UPDATE users SET email = ? WHERE user_id = ? AND tenant_id = ?",
+            (email, user_id, tenant_id),
+        )
+
+    if name is not None:
+        conn.execute(
+            "UPDATE users SET name = ? WHERE user_id = ? AND tenant_id = ?",
+            (name.strip() or _local_part(email or current.email), user_id, tenant_id),
+        )
+
+    if password is not None:
+        conn.execute(
+            "UPDATE users SET password_hash = ? WHERE user_id = ? AND tenant_id = ?",
+            (_hasher.hash(password), user_id, tenant_id),
+        )
+
+    conn.commit()
+
+    # Re-fetch to return the updated row
+    updated_row = conn.execute(
+        "SELECT * FROM users WHERE user_id = ? AND tenant_id = ?",
+        (user_id, tenant_id),
+    ).fetchone()
+    conn.close()
+    return _row_to_user(updated_row)
+
+
+def delete_member(tenant_id: str, user_id: str) -> None:
+    """Admin removes a member from the tenant.
+
+    Intentionally does NOT delete the member's documents or audit log rows —
+    those stay for the org's records. The member simply can no longer log in.
+    Raises MemberNotFoundError if the user_id doesn't exist in this tenant.
+    """
+    conn = _connection()
+    existing = conn.execute(
+        "SELECT 1 FROM users WHERE user_id = ? AND tenant_id = ?",
+        (user_id, tenant_id),
+    ).fetchone()
+    if existing is None:
+        conn.close()
+        raise MemberNotFoundError(f"No member {user_id} in tenant {tenant_id}")
+
+    conn.execute(
+        "DELETE FROM users WHERE user_id = ? AND tenant_id = ?",
+        (user_id, tenant_id),
+    )
+    conn.commit()
+    conn.close()
+
